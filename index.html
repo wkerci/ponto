@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ponto Facial PRO — Login Admin</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="login-tela">
+    <div class="login-cartao">
+      <div class="relogio">⏱</div>
+      <h1>Ponto Facial PRO</h1>
+      <p class="subtitulo">Painel web do administrador</p>
+
+      <form id="formLogin">
+        <label for="email">E-mail</label>
+        <input type="email" id="email" required autocomplete="username" />
+
+        <label for="senha">Senha</label>
+        <input type="password" id="senha" required autocomplete="current-password" />
+
+        <p class="erro-msg" id="erroMsg"></p>
+
+        <button type="submit" class="botao-primario" id="botaoEntrar">Entrar</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-app.js";
+    import {
+      getAuth,
+      signInWithEmailAndPassword,
+      onAuthStateChanged,
+    } from "https://www.gstatic.com/firebasejs/10.14.1/firebase-auth.js";
+    import { firebaseConfig } from "./firebase-config.js";
+
+    const app = initializeApp(firebaseConfig);
+    const auth = getAuth(app);
+
+    // Se já estiver logado, vai direto pro painel.
+    onAuthStateChanged(auth, (usuario) => {
+      if (usuario) window.location.href = "dashboard.html";
+    });
+
+    const form = document.getElementById("formLogin");
+    const erroMsg = document.getElementById("erroMsg");
+    const botaoEntrar = document.getElementById("botaoEntrar");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      erroMsg.textContent = "";
+      botaoEntrar.disabled = true;
+      botaoEntrar.textContent = "Entrando...";
+
+      const email = document.getElementById("email").value.trim();
+      const senha = document.getElementById("senha").value;
+
+      try {
+        await signInWithEmailAndPassword(auth, email, senha);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        erroMsg.textContent = "E-mail ou senha inválidos.";
+        botaoEntrar.disabled = false;
+        botaoEntrar.textContent = "Entrar";
+      }
+    });
+  </script>
+</body>
+</html>
