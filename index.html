@@ -1,11 +1,96 @@
-// Antes de executar a query
-console.log("Buscando pontos entre:", dataInicio, "e", dataFim);
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Controle de Ponto</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body class="bg-gray-100 p-6">
 
-const querySnapshot = await getDocs(q);
+  <div class="max-w-5xl mx-auto bg-white p-8 rounded-xl shadow-lg">
+    <h1 class="text-3xl font-bold mb-6 text-gray-800">📊 Painel de Controle de Ponto</h1>
+    
+    <div class="mb-8 flex flex-wrap gap-4 items-center bg-gray-50 p-4 rounded-lg">
+      <div>
+        <label class="block text-sm font-medium text-gray-700">Selecione o Dia:</label>
+        <input type="date" id="filtroData" class="border p-2 rounded w-full">
+      </div>
+      <button onclick="carregarDados()" class="bg-blue-600 text-white px-6 py-2 rounded font-bold hover:bg-blue-700 mt-5">
+        Carregar Dados
+      </button>
+    </div>
 
-// Logo após o getDocs
-console.log("Total de documentos encontrados:", querySnapshot.size);
+    <div class="grid md:grid-cols-2 gap-8">
+      <div>
+        <h2 class="text-xl font-semibold mb-4">📌 Registros do Dia</h2>
+        <div id="listaOcorrencias" class="h-64 overflow-y-auto border p-4 rounded bg-gray-50 text-sm">
+          Selecione uma data para iniciar.
+        </div>
+      </div>
+      <div>
+        <h2 class="text-xl font-semibold mb-4">📈 Resumo de Atrasos</h2>
+        <div class="h-64">
+          <canvas id="graficoAtrasos"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
 
-if (querySnapshot.empty) {
-    console.warn("Nenhum dado encontrado para essa data.");
-}
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "ponto-323aa.firebaseapp.com",
+      projectId: "ponto-323aa",
+      storageBucket: "ponto-323aa.appspot.com",
+      messagingSenderId: "809500787311",
+      appId: "SEU_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    let meuGrafico = new Chart(document.getElementById('graficoAtrasos').getContext('2d'), {
+      type: 'bar',
+      data: { labels: [], datasets: [{ label: 'Minutos de Atraso', data: [], backgroundColor: '#ef4444' }] },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    window.carregarDados = async () => {
+      const dataStr = document.getElementById('filtroData').value;
+      if (!dataStr) return alert("Escolha uma data!");
+
+      const start = new Date(dataStr + "T00:00:00");
+      const end = new Date(dataStr + "T23:59:59");
+
+      const q = query(collection(db, "pontos"), where("data", ">=", start), where("data", "<=", end));
+      const snapshot = await getDocs(q);
+
+      let html = "";
+      let stats = {};
+
+      snapshot.forEach(doc => {
+        const d = doc.data();
+        const hora = d.data.toDate().toLocaleTimeString();
+        html += `<div class="mb-2 border-b pb-1"><strong>${d.nomeFuncionario}</strong>: ${d.tipo} às ${hora}</div>`;
+        
+        // Lógica de atraso (exemplo: entrada após 08:00)
+        const h = d.data.toDate().getHours();
+        const m = d.data.toDate().getMinutes();
+        if (d.tipo === "entrada" && h >= 8 && m > 0) {
+          stats[d.nomeFuncionario] = (stats[d.nomeFuncionario] || 0) + ((h - 8) * 60 + m);
+        }
+      });
+
+      document.getElementById('listaOcorrencias').innerHTML = html || "Nenhum registro encontrado.";
+      meuGrafico.data.labels = Object.keys(stats);
+      meuGrafico.data.datasets[0].data = Object.values(stats);
+      meuGrafico.update();
+    };
+  </script>
+</body>
+</html>
