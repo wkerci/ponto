@@ -2,115 +2,60 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
-  <title>Painel de Monitoramento - Ponto</title>
-  <!-- Tailwind CSS para deixar o visual bonito e moderno -->
+  <title>Sistema de Gestão de Ponto</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- Chart.js para desenhar os gráficos automaticamente -->
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body class="bg-gray-100 p-8">
+<body class="bg-gray-50 p-6">
 
-  <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
-    <h1 class="text-2xl font-bold mb-6 text-gray-800">📊 Painel de Controle de Ponto</h1>
-    
-    <!-- Filtros de Data -->
-    <div class="mb-6 flex gap-4 items-center">
-      <label class="font-medium text-gray-700">Selecione o Dia:</label>
-      <input type="date" id="filtroData" class="border p-2 rounded-lg shadow-sm focus:ring focus:border-blue-300">
-      <button onclick="carregarDados()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Filtrar</button>
+  <div class="max-w-6xl mx-auto">
+    <h1 class="text-3xl font-bold mb-6">Dashboard de Gestão - Ponto</h1>
+
+    <div class="bg-white p-6 rounded-xl shadow-sm mb-6 flex gap-4 items-center">
+      <label class="font-bold">Selecionar Mês:</label>
+      <input type="month" id="filtroMes" class="border p-2 rounded">
+      <button onclick="processarRelatorio()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Gerar Relatório</button>
     </div>
 
-    <!-- Resultados do Dia -->
-    <div class="mb-8">
-      <h2 class="text-xl font-semibold mb-3 text-gray-700">📌 Ocorrências do Dia</h2>
-      <div id="listaOcorrencias" class="bg-gray-50 p-4 rounded-lg border text-gray-600">
-        Selecione uma data para ver os registros.
-      </div>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div class="bg-white p-4 rounded shadow"><h3>Total de Atrasos</h3><p id="cardAtrasos" class="text-2xl font-bold text-red-600">0</p></div>
+      <div class="bg-white p-4 rounded shadow"><h3>Horas Extras (Totais)</h3><p id="cardHE" class="text-2xl font-bold text-green-600">0</p></div>
+      <div class="bg-white p-4 rounded shadow"><h3>Batidas Perfeitas</h3><p id="cardCorreto" class="text-2xl font-bold text-blue-600">0</p></div>
     </div>
 
-    <!-- Gráfico Mensal -->
-    <div>
-      <h2 class="text-xl font-semibold mb-3 text-gray-700">📈 Resumo do Mês (Atrasos em Minutos)</h2>
-      <div class="h-80">
-        <canvas id="graficoAtrasos"></canvas>
-      </div>
+    <div class="bg-white p-6 rounded shadow h-96">
+      <canvas id="graficoPrincipal"></canvas>
     </div>
   </div>
 
-  <!-- Configuração do Firebase -->
   <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
-    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    // ... (Aqui entra sua inicialização do Firebase igual à anterior) ...
 
-    // ⚠️ SUBSTITUA COM AS CONFIGURAÇÕES DO SEU PROJETO PONTO-323AA
-    const firebaseConfig = {
-      apiKey: "SUA_API_KEY",
-      authDomain: "ponto-323aa.firebaseapp.com",
-      projectId: "ponto-323aa",
-      storageBucket: "ponto-323aa.appspot.com",
-      messagingSenderId: "809500787311",
-      appId: "SEU_APP_ID"
-    };
+    window.processarRelatorio = async () => {
+      const mesSelecionado = document.getElementById('filtroMes').value; // Ex: "2026-07"
+      if (!mesSelecionado) return alert("Selecione um mês!");
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
-
-    // Configuração inicial do gráfico vazio
-    const ctx = document.getElementById('graficoAtrasos').getContext('2d');
-    let meuGrafico = new Chart(ctx, {
-      type: 'bar',
-      data: {
-        labels: [], // Nomes dos funcionários vão aqui
-        datasets: [{
-          label: 'Minutos de Atraso acumulados',
-          data: [], // Minutos calculados vão aqui
-          backgroundColor: 'rgba(239, 68, 68, 0.5)',
-          borderColor: 'rgb(239, 68, 68)',
-          borderWidth: 1
-        }]
-      },
-      options: { responsive: true, maintainAspectRatio: false }
-    });
-
-    // Função que busca dados e atualiza a tela
-    window.carregarDados = async () => {
-      const dataSelecionada = document.getElementById('filtroData').value;
-      if (!dataSelecionada) return alert("Por favor, selecione uma data!");
-
-      // 1. Monitoramento Diário (Busca os pontos do dia selecionado)
-      const dataInicio = new Date(dataSelecionada + "T00:00:00");
-      const dataFim = new Date(dataSelecionada + "T23:59:59");
-
-      const q = query(collection(db, "pontos"), where("data", ">=", dataInicio), where("data", "<=", dataFim));
-      const querySnapshot = await getDocs(q);
+      // Busca todos os registros do mês
+      // Dica: No Firestore, use uma query filtrando por strings de data ou range de timestamp
+      const querySnapshot = await getDocs(collection(db, "pontos")); 
       
-      let listaHtml = "";
-      let dadosAtrasos = {}; // Para alimentar o gráfico
+      let stats = { atrasos: 0, horaExtra: 0, perfeitos: 0, funcionarios: {} };
 
-      if (querySnapshot.empty) {
-        listaHtml = "Nenhum ponto registrado neste dia.";
-      } else {
-        querySnapshot.forEach((doc) => {
-          const ponto = doc.data();
-          const horaFormatada = ponto.data.toDate().toLocaleTimeString('pt-BR');
-          listaHtml += `<p class="border-b py-1">⏱️ <strong>${ponto.nomeFuncionario}</strong> bateu o ponto de <strong>${ponto.tipo}</strong> às ${horaFormatada}</p>`;
-          
-          // Lógica simples de cálculo de atraso (exemplo de quem passou das 08:00)
-          const horaEntrada = ponto.data.toDate().getHours();
-          const minutoEntrada = ponto.data.toDate().getMinutes();
-          if (ponto.tipo === "entrada" && (horaEntrada > 8 || (horaEntrada === 8 && minutoEntrada > 0))) {
-            const atraso = ((horaEntrada - 8) * 60) + minutoEntrada;
-            dadosAtrasos[ponto.nomeFuncionario] = (dadosAtrasos[ponto.nomeFuncionario] || 0) + atraso;
-          }
-        });
-      }
-      document.getElementById('listaOcorrencias').innerHTML = listaHtml;
+      querySnapshot.forEach((doc) => {
+        const p = doc.data();
+        // Lógica de processamento:
+        // 1. Identificar se o registro pertence ao mês selecionado
+        // 2. Classificar como entrada/saída
+        // 3. Somar na variável 'stats'
+      });
 
-      // 2. Atualizar o gráfico de Atrasos com os cálculos
-      meuGrafico.data.labels = Object.keys(dadosAtrasos);
-      meuGrafico.data.datasets[0].data = Object.values(dadosAtrasos);
-      meuGrafico.update();
+      atualizarInterface(stats);
     };
+
+    function atualizarInterface(stats) {
+      document.getElementById('cardAtrasos').innerText = stats.atrasos;
+      // ... atualizar os outros cards e o gráfico ...
+    }
   </script>
 </body>
 </html>
