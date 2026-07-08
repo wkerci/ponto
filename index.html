@@ -1,61 +1,46 @@
 <!DOCTYPE html>
-<html lang="pt-BR">
+<html>
 <head>
+  <!--
+    If you are serving your web app in a path other than the root, change the
+    href value below to reflect the base path you are serving from.
+
+    The path provided below has to start and end with a slash "/" in order for
+    it to work correctly.
+
+    For more details:
+    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
+
+    This is a placeholder for base href that will be replaced by the value of
+    the `--base-href` argument provided to `flutter build`.
+  -->
+  <base href="$FLUTTER_BASE_HREF">
+
   <meta charset="UTF-8">
-  <title>Sistema de Gestão de Ponto</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="A new Flutter project.">
+
+  <!-- iOS meta tags & icons -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black">
+  <meta name="apple-mobile-web-app-title" content="ponto_facial">
+  <link rel="apple-touch-icon" href="icons/Icon-192.png">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/png" href="favicon.png"/>
+
+  <title>ponto_facial</title>
+  <link rel="manifest" href="manifest.json">
 </head>
-<body class="bg-gray-50 p-6">
+<body>
+  <!--
+    You can customize the "flutter_bootstrap.js" script.
+    This is useful to provide a custom configuration to the Flutter loader
+    or to give the user feedback during the initialization process.
 
-  <div class="max-w-6xl mx-auto">
-    <h1 class="text-3xl font-bold mb-6">Dashboard de Gestão - Ponto</h1>
-
-    <div class="bg-white p-6 rounded-xl shadow-sm mb-6 flex gap-4 items-center">
-      <label class="font-bold">Selecionar Mês:</label>
-      <input type="month" id="filtroMes" class="border p-2 rounded">
-      <button onclick="processarRelatorio()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700">Gerar Relatório</button>
-    </div>
-
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-      <div class="bg-white p-4 rounded shadow"><h3>Total de Atrasos</h3><p id="cardAtrasos" class="text-2xl font-bold text-red-600">0</p></div>
-      <div class="bg-white p-4 rounded shadow"><h3>Horas Extras (Totais)</h3><p id="cardHE" class="text-2xl font-bold text-green-600">0</p></div>
-      <div class="bg-white p-4 rounded shadow"><h3>Batidas Perfeitas</h3><p id="cardCorreto" class="text-2xl font-bold text-blue-600">0</p></div>
-    </div>
-
-    <div class="bg-white p-6 rounded shadow h-96">
-      <canvas id="graficoPrincipal"></canvas>
-    </div>
-  </div>
-
-  <script type="module">
-    // ... (Aqui entra sua inicialização do Firebase igual à anterior) ...
-
-    window.processarRelatorio = async () => {
-      const mesSelecionado = document.getElementById('filtroMes').value; // Ex: "2026-07"
-      if (!mesSelecionado) return alert("Selecione um mês!");
-
-      // Busca todos os registros do mês
-      // Dica: No Firestore, use uma query filtrando por strings de data ou range de timestamp
-      const querySnapshot = await getDocs(collection(db, "pontos")); 
-      
-      let stats = { atrasos: 0, horaExtra: 0, perfeitos: 0, funcionarios: {} };
-
-      querySnapshot.forEach((doc) => {
-        const p = doc.data();
-        // Lógica de processamento:
-        // 1. Identificar se o registro pertence ao mês selecionado
-        // 2. Classificar como entrada/saída
-        // 3. Somar na variável 'stats'
-      });
-
-      atualizarInterface(stats);
-    };
-
-    function atualizarInterface(stats) {
-      document.getElementById('cardAtrasos').innerText = stats.atrasos;
-      // ... atualizar os outros cards e o gráfico ...
-    }
-  </script>
+    For more details:
+    * https://docs.flutter.dev/platform-integration/web/initialization
+  -->
+  <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
