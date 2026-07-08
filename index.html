@@ -1,46 +1,116 @@
 <!DOCTYPE html>
-<html>
+<html lang="pt-BR">
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
-  <base href="$FLUTTER_BASE_HREF">
-
   <meta charset="UTF-8">
-  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
-
-  <!-- iOS meta tags & icons -->
-  <meta name="mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="ponto_facial">
-  <link rel="apple-touch-icon" href="icons/Icon-192.png">
-
-  <!-- Favicon -->
-  <link rel="icon" type="image/png" href="favicon.png"/>
-
-  <title>ponto_facial</title>
-  <link rel="manifest" href="manifest.json">
+  <title>Painel de Monitoramento - Ponto</title>
+  <!-- Tailwind CSS para deixar o visual bonito e moderno -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Chart.js para desenhar os gráficos automaticamente -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
-<body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+<body class="bg-gray-100 p-8">
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
-  <script src="flutter_bootstrap.js" async></script>
+  <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
+    <h1 class="text-2xl font-bold mb-6 text-gray-800">📊 Painel de Controle de Ponto</h1>
+    
+    <!-- Filtros de Data -->
+    <div class="mb-6 flex gap-4 items-center">
+      <label class="font-medium text-gray-700">Selecione o Dia:</label>
+      <input type="date" id="filtroData" class="border p-2 rounded-lg shadow-sm focus:ring focus:border-blue-300">
+      <button onclick="carregarDados()" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition">Filtrar</button>
+    </div>
+
+    <!-- Resultados do Dia -->
+    <div class="mb-8">
+      <h2 class="text-xl font-semibold mb-3 text-gray-700">📌 Ocorrências do Dia</h2>
+      <div id="listaOcorrencias" class="bg-gray-50 p-4 rounded-lg border text-gray-600">
+        Selecione uma data para ver os registros.
+      </div>
+    </div>
+
+    <!-- Gráfico Mensal -->
+    <div>
+      <h2 class="text-xl font-semibold mb-3 text-gray-700">📈 Resumo do Mês (Atrasos em Minutos)</h2>
+      <div class="h-80">
+        <canvas id="graficoAtrasos"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- Configuração do Firebase -->
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
+    import { getFirestore, collection, query, where, getDocs } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+
+    // ⚠️ SUBSTITUA COM AS CONFIGURAÇÕES DO SEU PROJETO PONTO-323AA
+    const firebaseConfig = {
+      apiKey: "SUA_API_KEY",
+      authDomain: "ponto-323aa.firebaseapp.com",
+      projectId: "ponto-323aa",
+      storageBucket: "ponto-323aa.appspot.com",
+      messagingSenderId: "809500787311",
+      appId: "SEU_APP_ID"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
+
+    // Configuração inicial do gráfico vazio
+    const ctx = document.getElementById('graficoAtrasos').getContext('2d');
+    let meuGrafico = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: [], // Nomes dos funcionários vão aqui
+        datasets: [{
+          label: 'Minutos de Atraso acumulados',
+          data: [], // Minutos calculados vão aqui
+          backgroundColor: 'rgba(239, 68, 68, 0.5)',
+          borderColor: 'rgb(239, 68, 68)',
+          borderWidth: 1
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false }
+    });
+
+    // Função que busca dados e atualiza a tela
+    window.carregarDados = async () => {
+      const dataSelecionada = document.getElementById('filtroData').value;
+      if (!dataSelecionada) return alert("Por favor, selecione uma data!");
+
+      // 1. Monitoramento Diário (Busca os pontos do dia selecionado)
+      const dataInicio = new Date(dataSelecionada + "T00:00:00");
+      const dataFim = new Date(dataSelecionada + "T23:59:59");
+
+      const q = query(collection(db, "pontos"), where("data", ">=", dataInicio), where("data", "<=", dataFim));
+      const querySnapshot = await getDocs(q);
+      
+      let listaHtml = "";
+      let dadosAtrasos = {}; // Para alimentar o gráfico
+
+      if (querySnapshot.empty) {
+        listaHtml = "Nenhum ponto registrado neste dia.";
+      } else {
+        querySnapshot.forEach((doc) => {
+          const ponto = doc.data();
+          const horaFormatada = ponto.data.toDate().toLocaleTimeString('pt-BR');
+          listaHtml += `<p class="border-b py-1">⏱️ <strong>${ponto.nomeFuncionario}</strong> bateu o ponto de <strong>${ponto.tipo}</strong> às ${horaFormatada}</p>`;
+          
+          // Lógica simples de cálculo de atraso (exemplo de quem passou das 08:00)
+          const horaEntrada = ponto.data.toDate().getHours();
+          const minutoEntrada = ponto.data.toDate().getMinutes();
+          if (ponto.tipo === "entrada" && (horaEntrada > 8 || (horaEntrada === 8 && minutoEntrada > 0))) {
+            const atraso = ((horaEntrada - 8) * 60) + minutoEntrada;
+            dadosAtrasos[ponto.nomeFuncionario] = (dadosAtrasos[ponto.nomeFuncionario] || 0) + atraso;
+          }
+        });
+      }
+      document.getElementById('listaOcorrencias').innerHTML = listaHtml;
+
+      // 2. Atualizar o gráfico de Atrasos com os cálculos
+      meuGrafico.data.labels = Object.keys(dadosAtrasos);
+      meuGrafico.data.datasets[0].data = Object.values(dadosAtrasos);
+      meuGrafico.update();
+    };
+  </script>
 </body>
 </html>
