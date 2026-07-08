@@ -22,9 +22,37 @@
   <div class="conteudo">
     <!-- MONITORAMENTO -->
     <section class="secao ativa" id="secao-monitoramento">
-      <h2 class="titulo-secao">Monitoramento de hoje</h2>
-      <div id="notificacoesHoje"></div>
-      <div id="listaMonitoramento" class="carregando">Carregando...</div>
+      <h2 class="titulo-secao">Monitoramento</h2>
+
+      <div class="subabas">
+        <button class="subaba ativa" data-subaba="dia">Dia</button>
+        <button class="subaba" data-subaba="mes">Mês (ranking)</button>
+      </div>
+
+      <!-- Sub-vista: Dia -->
+      <div class="subsecao ativa" id="subsecao-dia">
+        <div class="filtros">
+          <div>
+            <label for="filtroDiaMonitoramento">Data</label>
+            <input type="date" id="filtroDiaMonitoramento" />
+          </div>
+          <div>
+            <button class="botao-primario" id="botaoHojeMonitoramento" style="width:auto;padding:11px 18px;">Hoje</button>
+          </div>
+        </div>
+        <div id="notificacoesHoje"></div>
+        <div id="listaMonitoramento" class="carregando">Carregando...</div>
+      </div>
+
+      <!-- Sub-vista: Mês -->
+      <div class="subsecao" id="subsecao-mes">
+        <div class="navegador-mes">
+          <button class="botao-icone" id="botaoMesAnterior">‹</button>
+          <span id="rotuloMes"></span>
+          <button class="botao-icone" id="botaoMesProximo">›</button>
+        </div>
+        <div id="rankingMes" class="carregando">Carregando...</div>
+      </div>
     </section>
 
     <!-- FUNCIONÁRIOS -->
